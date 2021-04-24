@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: octolamp-agent-controller
+  namespace: octolamp-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: octolamp-agent-controller
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        run: octolamp-agent-controller
+    spec:
+      serviceAccountName: octolamp-service-account
+      containers:
+      - env:
+        - name: AZDO_ORG_URI
+          value: https://dev.azure.com/cloudoven
+        - name: AZDO_TOKEN
+          value: ""
+        - name: AZDO_POOLNAME
+          value: "Azure-Kubernetes-Linux-x64"
+        - name: TARGET_NAMESPACE
+          value: "default"
+        - name: STANDBY_AGENT_COUNT
+          value: "2"
+        - name: MAX_AGENT_COUNT
+          value: "25"                              
+        image: moimhossain/octolamp-agent-controller:v1.0.0-beta
+        imagePullPolicy: Always
+        name: octolamp-agent-controller
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi

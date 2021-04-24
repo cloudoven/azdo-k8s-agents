@@ -1,0 +1,10 @@
+﻿apiVersion: v1
+kind: Pod
+metadata:
+  namespace: <NAMESPACE>
+  name: <POD-NAME>
+spec:
+  restartPolicy: Never
+  containers: 
+  - name: <POD-NAME>
+    image: <IMAGE-NAME>

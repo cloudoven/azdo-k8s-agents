@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: octolamp-agent-controller
+rules:
+- apiGroups: ["", "azdo.octolamp.nl"]
+  resources: ["pods", "deployments", "agents"]
+  verbs: ["get", "watch", "list", "create", "update", "delete", "patch"]

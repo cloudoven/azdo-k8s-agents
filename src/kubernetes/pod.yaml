@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: default
+  name: self-hosted-agent-linux-x64
+spec:
+  restartPolicy: Never
+  containers: 
+  - name: self-hosted-agent-linux-x64
+    image: moimhossain/azdo-agent-linux-x64:latest
+    env:
+    - name: AZP_POOL
+      value: "Azure-Kubernetes-Linux-x64"
+    - name: AZP_URL
+      value: ""
+    - name: AZP_TOKEN
+      value: ""

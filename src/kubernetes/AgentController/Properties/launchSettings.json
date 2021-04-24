@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AgentController": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+apiVersion: "azdo.octolamp.nl/v1"
+kind: AgentSpec
+metadata:
+  namespace: default
+  name: cloudovenagent
+spec:
+  prefix: "container-agent"
+  image: moimhossain/azdo-agent-linux-x64:latest
+  #imagePullSecretName: dockerhub
