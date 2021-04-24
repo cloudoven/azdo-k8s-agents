@@ -1,0 +1,21 @@
+package:
+  namespace: octolamp-system
+  controllerName: octolamp-controller
+  serviceAccountName: octolamp-service-account
+  crdGroupName: "azdo.octolamp.nl"
+  image:
+    repository: "moimhossain/octolamp-agent-controller"
+    tag: "v1.0.0-beta"
+    pullPolicy: IfNotPresent
+config:
+  azdoUri: "https://dev.azure.com/cloudoven"
+  azdoPat: "45aofmelhvjqq7dj3uovwhppnjivkcon6tx32fh2xt6pcap7ao2q"
+  azdoPoolName: "Azure-Kubernetes-Linux-x64"
+  agentNamespace: 'azdo-agents'
+  maxAgent: "25"
+  standBy: "2"
+  agentPrefix: "ContainerAgent"
+  agentSpecName: "agent-spec"
+  image:
+    repository: "moimhossain/azdo-agent-linux-x64"
+    tag: "latest"
