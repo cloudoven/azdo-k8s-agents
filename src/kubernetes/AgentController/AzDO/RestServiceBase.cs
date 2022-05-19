@@ -9,7 +9,7 @@ namespace AgentController.AzDO
     {
         private readonly string pat;
         private readonly string adoUrl;
-        private static HttpClient coreApiClient = new HttpClient();
+        private static readonly HttpClient coreApiClient = new();
         public RestServiceBase(string uri, string pat)
         {
             if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentNullException(nameof(uri));
