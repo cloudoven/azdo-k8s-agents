@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31129.286
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32602.215
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentController", "AgentController.csproj", "{9EC16792-9A2D-472E-880A-C6F0A58B09B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AgentController", "AgentController.csproj", "{9EC16792-9A2D-472E-880A-C6F0A58B09B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JobSimulations", "..\..\simulators\JobSimulations\JobSimulations.csproj", "{87C6FEF4-A1CA-4C0D-8590-3D84D3C8087B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{9EC16792-9A2D-472E-880A-C6F0A58B09B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EC16792-9A2D-472E-880A-C6F0A58B09B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EC16792-9A2D-472E-880A-C6F0A58B09B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87C6FEF4-A1CA-4C0D-8590-3D84D3C8087B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87C6FEF4-A1CA-4C0D-8590-3D84D3C8087B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87C6FEF4-A1CA-4C0D-8590-3D84D3C8087B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87C6FEF4-A1CA-4C0D-8590-3D84D3C8087B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
