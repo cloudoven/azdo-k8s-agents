@@ -4,19 +4,25 @@ using AgentController.AzDO.Supports;
 using AgentController.Supports;
 using k8s;
 using k8s.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AgentController.Kubes
 {
     public class K8sUtils
     {
-        private readonly Kubernetes client;
+        private readonly Kubernetes _client;
+        private Timer _timer;
+        private Watcher<V1Pod> _podWatcher;
+        private const int _intervalInSeconds = 1000 * 45; // 45 seconds
         public K8sUtils(Kubernetes client)
         {
-            this.client = client;
+            _client = client;
+            _timer = null;
         }
 
         public async Task<bool> SpinAgentAsync(ConfigUtils.Config cfg)
@@ -44,7 +50,7 @@ namespace AgentController.Kubes
             containerSpec.Env.Add(new V1EnvVar("AZP_URL", azdoUri));
             containerSpec.Env.Add(new V1EnvVar("AZP_TOKEN", pat));
 
-            await client.CreateNamespacedPodAsync(podSpec, ns);
+            await _client.CreateNamespacedPodAsync(podSpec, ns);
             return true;
         }
 
@@ -52,7 +58,7 @@ namespace AgentController.Kubes
         {
             try
             {
-                var response = await client.ListNamespacedCustomObjectAsync(CrdConstants.Group,
+                var response = await _client.ListNamespacedCustomObjectAsync(CrdConstants.Group,
                                                    CrdConstants.Version,
                                                    ns,
                                                    CrdConstants.CRD_AgentSpecPlural);
@@ -63,7 +69,7 @@ namespace AgentController.Kubes
             {
                 // swallow for now
             }
-            return default(CRDList);
+            return default;
         }
         
         public async Task<AgentSpec> GetAgentSpecAsync(string ns)
@@ -74,6 +80,30 @@ namespace AgentController.Kubes
                 return crdCollection.Items.First().Spec;
             }
             return default(AgentSpec);
+        }
+
+        public void WatchAsync(
+            string targetNamespace, 
+            Func<WatchEventType, V1Pod, Task> callback)
+        {
+            _timer = new Timer(
+                _ => 
+                {
+                    Console.WriteLine($"Reestablishing the connection to the event stream.");
+                    if (_podWatcher != null)
+                    {
+                        Console.WriteLine($"Disposing last watcher instance.");
+                        _podWatcher.Dispose();
+                    }
+                    var podlistResp = _client.ListNamespacedPodWithHttpMessagesAsync(targetNamespace, watch: true);
+                    _podWatcher = podlistResp.Watch<V1Pod, V1PodList>(async (eventType, pod) =>
+                    {
+                        await callback(eventType, pod);
+                    });
+                },
+                state: null,
+                dueTime: 0,
+                period: _intervalInSeconds);
         }
     }
 }
