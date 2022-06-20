@@ -14,14 +14,19 @@ namespace AgentController.Supports
         private const string ENV_STANDBY = "STANDBY_AGENT_COUNT";
         private const string ENV_MAX_AGENT_COUNT = "MAX_AGENT_COUNT";
         private const string ENV_LOAD_LOCAL_K8S_CONFIG = "LOAD_LOCAL_K8S_CONFIG";
+        private const string ENV_APPINSIGHT_CONN_STR = "APPINSIGHT_CONN_STR";
+        private const string ENV_DISABLE_CONSOLE_LOGS = "DISABLE_CONSOLE_LOGS";
 
         public record Config(
-            string orgUri, 
-            string pat, 
-            string poolName, 
-            string targetNamespace, 
-            int standBy, 
-            int maxAgentsCount, bool clusterMode);
+            string OrgUri, 
+            string Pat, 
+            string PoolName, 
+            string TargetNamespace, 
+            int StandBy, 
+            int MaxAgentsCount, 
+            bool ClusterMode,
+            string AppInsightConnectionString,
+            bool DisableConsoleLogs);
 
 
         public static Config Get()
@@ -33,8 +38,17 @@ namespace AgentController.Supports
             var standBy = Convert.ToInt32(ReadEnvironmentVar(ENV_STANDBY, "2", false));
             var maxLimit = Convert.ToInt32(ReadEnvironmentVar(ENV_MAX_AGENT_COUNT, "25", false));
             var clusterMode = string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(ENV_LOAD_LOCAL_K8S_CONFIG));
+            var appInsightConnectionString = ReadEnvironmentVar(ENV_APPINSIGHT_CONN_STR, string.Empty, false);
 
-            return new Config(orgUri, pat, poolName, targetNamespace, standBy, maxLimit, clusterMode);
+            var disableConsoleLogsString = ReadEnvironmentVar(ENV_DISABLE_CONSOLE_LOGS, string.Empty, false);
+            var disableConsoleError =
+                disableConsoleLogsString.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                disableConsoleLogsString.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+            return new Config(orgUri, pat, poolName, 
+                targetNamespace, standBy, maxLimit, 
+                clusterMode, appInsightConnectionString, 
+                disableConsoleError);
         }
 
         private static string ReadEnvironmentVar(string key, string defaultValue, 
@@ -46,7 +60,7 @@ namespace AgentController.Supports
             {
                 if(failWhenMissing)
                 {
-                    Trace.TraceError($"Expected Envrionment key '{key}' was not set.");
+                    Console.WriteLine($"Expected Envrionment key '{key}' was not set.");
                     throw new InvalidProgramException($"Expected Envrionment key '{key}' was not set.");
                 }
                 else

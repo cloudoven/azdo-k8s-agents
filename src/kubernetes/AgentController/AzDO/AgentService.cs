@@ -41,7 +41,7 @@ namespace AgentController.AzDO
             {
                 return response.Value.FirstOrDefault();
             }
-            return default(Pool);
+            return default;
         }
 
         public async Task<ReservedAgent> GetAgentByNameAsync(int poolId, string agentName)
@@ -52,7 +52,7 @@ namespace AgentController.AzDO
             {
                 return response.Value.FirstOrDefault();
             }
-            return default(ReservedAgent);
+            return default;
         }
     }
 }

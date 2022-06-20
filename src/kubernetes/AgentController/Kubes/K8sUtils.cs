@@ -16,42 +16,64 @@ namespace AgentController.Kubes
     public class K8sUtils
     {
         private readonly Kubernetes _client;
+        private readonly InstrumentationClient _instrumentationClient;
+#pragma warning disable IDE0052 // Remove unread private members
         private Timer _timer;
+#pragma warning restore IDE0052 // Remove unread private members
         private Watcher<V1Pod> _podWatcher;
         private const int _intervalInSeconds = 1000 * 45; // 45 seconds
-        public K8sUtils(Kubernetes client)
+        public K8sUtils(Kubernetes client, InstrumentationClient instrumentationClient)
         {
             _client = client;
+            _instrumentationClient = instrumentationClient;
             _timer = null;
         }
 
         public async Task<bool> SpinAgentAsync(ConfigUtils.Config cfg)
         {
-            return await SpinAgentAsync(cfg.targetNamespace, cfg.orgUri, cfg.pat, cfg.poolName);
+            return await SpinAgentAsync(cfg.TargetNamespace, cfg.OrgUri, cfg.Pat, cfg.PoolName);
         }
 
         private async Task<bool> SpinAgentAsync(string ns, string azdoUri, string pat, string poolName)
         {
-            var agentSpec = await GetAgentSpecAsync(ns);
-            var podSpec = await Templates.ReadPodTemplateAsync();
-            var name = agentSpec.GeneratePodName();
-
-            podSpec.Metadata.NamespaceProperty = ns;
-            podSpec.Metadata.Name = name;
-            var containerSpec = podSpec.Spec.Containers.FirstOrDefault();
-            containerSpec.Name = name;
-            containerSpec.Image = agentSpec.GetImageName();
-
-            if (containerSpec.Env == null)
+            try
             {
-                containerSpec.Env = new List<V1EnvVar>();
-            }
-            containerSpec.Env.Add(new V1EnvVar("AZP_POOL", poolName));
-            containerSpec.Env.Add(new V1EnvVar("AZP_URL", azdoUri));
-            containerSpec.Env.Add(new V1EnvVar("AZP_TOKEN", pat));
+                var agentSpec = await GetAgentSpecAsync(ns);
+                var podSpec = await Templates.ReadPodTemplateAsync();
+                var name = agentSpec.GeneratePodName();
 
-            await _client.CreateNamespacedPodAsync(podSpec, ns);
-            return true;
+                podSpec.Metadata.NamespaceProperty = ns;
+                podSpec.Metadata.Name = name;
+                var containerSpec = podSpec.Spec.Containers.FirstOrDefault();
+                containerSpec.Name = name;
+                containerSpec.Image = agentSpec.GetImageName();
+
+                if (containerSpec.Env == null)
+                {
+                    containerSpec.Env = new List<V1EnvVar>();
+                }
+                containerSpec.Env.Add(new V1EnvVar("AZP_POOL", poolName));
+                containerSpec.Env.Add(new V1EnvVar("AZP_URL", azdoUri));
+                containerSpec.Env.Add(new V1EnvVar("AZP_TOKEN", pat));
+
+                await _client.CreateNamespacedPodAsync(podSpec, ns);
+
+                _instrumentationClient.TrackEvent("Pod Created", new Dictionary<string, string>
+                {
+                    { "PodNamespace", ns },
+                    { "Organization", azdoUri },
+                    { "PoolName", poolName },
+                    { "ImageName", containerSpec.Image },
+                    { "PodName", podSpec.Metadata.Name },
+                });
+
+                return true;
+            }
+            catch(Exception ex)
+            {
+                _instrumentationClient.TrackError(ex);
+            }
+            return false;
         }
 
         public async Task<CRDList> ListAgentSpecAsync(string ns)
@@ -65,9 +87,9 @@ namespace AgentController.Kubes
                 var crds = JsonSerializer.Deserialize<CRDList>(response.ToString(), HttpClientExtensions.CamelCaseOption);
                 return crds;
             }
-            catch 
+            catch (Exception ex) 
             {
-                // swallow for now
+                _instrumentationClient.TrackError(ex);
             }
             return default;
         }
@@ -79,7 +101,7 @@ namespace AgentController.Kubes
             {
                 return crdCollection.Items.First().Spec;
             }
-            return default(AgentSpec);
+            return default;
         }
 
         public void WatchAsync(
@@ -89,10 +111,17 @@ namespace AgentController.Kubes
             _timer = new Timer(
                 _ => 
                 {
-                    Console.WriteLine($"Reestablishing the connection to the event stream.");
-                    if (_podWatcher != null)
+                    _instrumentationClient.TrackEvent("Reestablishing watch connection to the Kubernetes API server.", new Dictionary<string, string>
                     {
-                        Console.WriteLine($"Disposing last watcher instance.");
+                        { "PodNamespace", targetNamespace },
+                        { "Watch interval", _intervalInSeconds.ToString() }
+                    });
+                    if (_podWatcher != null)
+                    {   
+                        _instrumentationClient.TrackEvent("Disposing last used watcher instance.", new Dictionary<string, string>
+                        {
+                            { "PodNamespace", targetNamespace }
+                        });
                         _podWatcher.Dispose();
                     }
                     var podlistResp = _client.ListNamespacedPodWithHttpMessagesAsync(targetNamespace, watch: true);

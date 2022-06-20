@@ -20,7 +20,7 @@ namespace AgentController.AzDO.Supports
             {
                 return await response.Content.ReadAsStringAsync();
             }
-            return default(string);
+            return default;
         }
 
 
@@ -43,7 +43,7 @@ namespace AgentController.AzDO.Supports
             {
                 return await response.Content.ReadContentAsync<TPayload>(options);
             }
-            return default(TPayload);
+            return default;
         }
 
         public static async Task<bool> DeleteRestAsync(
@@ -76,7 +76,7 @@ namespace AgentController.AzDO.Supports
             {
                 return await response.Content.ReadContentAsync<TResponsePayload>();
             }
-            return default(TResponsePayload);
+            return default;
         }
 
         public static async Task<HttpResponseMessage> PatchAsync(
@@ -134,7 +134,7 @@ namespace AgentController.AzDO.Supports
             {
                 return await response.Content.ReadContentAsync<TResponseType>();
             }
-            return default(TResponseType);
+            return default;
         }
 
         public static async Task<TPayload> ReadContentAsync<TPayload>(this HttpContent content, 
