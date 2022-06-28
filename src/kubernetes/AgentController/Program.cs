@@ -22,6 +22,10 @@ var k8sUtil = new K8sUtils(client, instrumentation);
 var agentService = new AgentService(cfg.OrgUri, cfg.Pat);
 var pool = await agentService.GetPoolByNameAsync(cfg.PoolName);
 
+// temp code
+await agentService.GetJobRequestsAsync(pool.Id);
+// temp code
+
 if (pool != null)
 {
     var eventSideEffectsMitigations = new ConcurrentDictionary<string, string>();

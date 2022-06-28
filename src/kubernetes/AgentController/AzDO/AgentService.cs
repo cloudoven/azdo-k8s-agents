@@ -16,6 +16,18 @@ namespace AgentController.AzDO
             
         }
 
+        // url := fmt.Sprintf("%s/_apis/distributedtask/pools/%d/jobrequests", s.metadata.organizationURL, s.metadata.poolID)
+        public async Task GetJobRequestsAsync(int poolId)
+        {
+            var path = $"{OrgName}/_apis/distributedtask/pools/{poolId}/jobrequests";
+            var response = await Http.GetStringAsync(path);
+
+            // TIP:
+            // The job in the response above should have a property 'result' if that is null then the job is active
+            // according to KEDA
+            return;
+        }
+
         public async Task<List<Job>> ListJobRequestsUIAsync(int poolId)
         {
             var option = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
