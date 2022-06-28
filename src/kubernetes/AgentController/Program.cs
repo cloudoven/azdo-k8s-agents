@@ -39,30 +39,42 @@ if (pool != null)
 
     while (true)
     {
-        var jobs = await agentService.ListJobRequestsUIAsync(pool.Id);
-
-        // temp code
-        //bool seen = await storage.CheckJobAcknowledgementAsync(jobs.FirstOrDefault());
-        // temp code
-
-        var activeJob = (jobs.Count - jobs.Count(j => j.IsCompleted));
         var podCollection = await client.ListNamespacedPodAsync(cfg.TargetNamespace);
-        // get only pending and running pods
-        var totalNumberOfPods = podCollection.Items.Where(pod => pod.IsActive()).Count();
-
-        while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (activeJob + cfg.StandBy))
+        var totalActiveAgents = podCollection.Items.Where(pod => pod.IsActive()).Count();
+        for (var i = totalActiveAgents; i < cfg.MaxAgentsCount && i < cfg.StandBy; ++i)
         {
-            instrumentation
-                .TrackEvent($"Responding to demand (active-request={activeJob}; current-pod-count={totalNumberOfPods}) Launching new Pod",
-                new Dictionary<string, string> 
-                {
-                    { "TargetNamespace", cfg.TargetNamespace },
-                    { "ActiveJobRequest", activeJob.ToString() },
-                    { "PodCount", totalNumberOfPods.ToString() }
-                });
             await k8sUtil.SpinAgentAsync(cfg);
-            ++totalNumberOfPods;
         }
+
+        var jobs = await agentService.ListJobRequestsUIAsync(pool.Id);
+        foreach (var job in jobs)
+        {
+            if (!job.IsCompleted)
+            {
+                var seen = await storage.CheckJobAcknowledgementAsync(job);
+                if (!seen)
+                {
+                    // we are watching this job for first time
+
+                    if (totalActiveAgents < cfg.MaxAgentsCount)
+                    {
+                        instrumentation
+                            .TrackEvent($"Creating agent for job = {job.JobId}",
+                            new Dictionary<string, string>
+                            {
+                                { "TargetNamespace", cfg.TargetNamespace },
+                                { "JobId", job.JobId },
+                                { "PodCount", totalActiveAgents.ToString() }
+                            });
+
+                        await k8sUtil.SpinAgentAsync(cfg);
+                        await storage.RegisterJobAsync(job);
+                        ++totalActiveAgents;
+                    }
+                }
+            }
+        }
+        
 
         while (!danglingAgents.IsEmpty)
         {
@@ -127,5 +139,4 @@ if (pool != null)
         }
         await Task.Delay(1000);
     }
-
 }

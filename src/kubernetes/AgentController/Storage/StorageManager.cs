@@ -48,6 +48,31 @@ namespace AgentController.Storage
             return queryResultsFilter.Any();
         }
 
+        public async Task UnregisterJobAsync(Job job)
+        {
+            ArgumentNullException.ThrowIfNull(job);
+
+            var keys = StorageKeyPair.Get(job);
+            var tableClient = this.serviceClient.GetTableClient(tableName);
+            await tableClient.DeleteEntityAsync(keys.PartitionKey, keys.RowKey);
+        }
+
+        public async Task RegisterJobAsync(Job job)
+        {
+            ArgumentNullException.ThrowIfNull(job);
+
+            var keys = StorageKeyPair.Get(job);
+            var tableClient = this.serviceClient.GetTableClient(tableName);
+            var entity = new TableEntity(keys.PartitionKey, keys.RowKey)
+            {
+                { "JobId", job.JobId },
+                { "PlanId", job.PlanId },
+                { "OrchestrationId", job.OrchestrationId },
+                { "PoolId", job.PoolId },
+                { "QueueTime", job.QueueTime },
+            };
+            await tableClient.AddEntityAsync(entity);
+        }
 
         public class StorageKeyPair
         {
