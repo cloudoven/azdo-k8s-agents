@@ -16,11 +16,15 @@ namespace AgentController.Supports
         private const string ENV_LOAD_LOCAL_K8S_CONFIG = "LOAD_LOCAL_K8S_CONFIG";
         private const string ENV_APPINSIGHT_CONN_STR = "APPINSIGHT_CONN_STR";
         private const string ENV_DISABLE_CONSOLE_LOGS = "DISABLE_CONSOLE_LOGS";
+        private const string ENV_STORAGE_ACCOUNT_NAME = "STORAGE_ACCOUNT_NAME";
+        private const string ENV_STORAGE_ACCOUNT_KEY = "STORAGE_ACCOUNT_KEY";
 
         public record Config(
             string OrgUri, 
             string Pat, 
-            string PoolName, 
+            string PoolName,
+            string StorageAccountName, 
+            string StorageAccountKey,
             string TargetNamespace, 
             int StandBy, 
             int MaxAgentsCount, 
@@ -34,6 +38,10 @@ namespace AgentController.Supports
             var orgUri = ReadEnvironmentVar(ENV_AZDO_ORG_URI, string.Empty, true);
             var pat = ReadEnvironmentVar(ENV_AZDO_PAT, string.Empty, true);
             var poolName = ReadEnvironmentVar(ENV_AZDO_POOLNAME, string.Empty, true);
+
+            var storageAccountName = ReadEnvironmentVar(ENV_STORAGE_ACCOUNT_NAME, string.Empty, true);
+            var storageAccountKey = ReadEnvironmentVar(ENV_STORAGE_ACCOUNT_KEY, string.Empty, true);
+
             var targetNamespace = ReadEnvironmentVar(ENV_TARGET_NAMESPACE, "default", false);
             var standBy = Convert.ToInt32(ReadEnvironmentVar(ENV_STANDBY, "2", false));
             var maxLimit = Convert.ToInt32(ReadEnvironmentVar(ENV_MAX_AGENT_COUNT, "25", false));
@@ -45,7 +53,8 @@ namespace AgentController.Supports
                 disableConsoleLogsString.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
                 disableConsoleLogsString.Equals("true", StringComparison.OrdinalIgnoreCase);
 
-            return new Config(orgUri, pat, poolName, 
+            return new Config(orgUri, pat, poolName,
+                storageAccountName, storageAccountKey,
                 targetNamespace, standBy, maxLimit, 
                 clusterMode, appInsightConnectionString, 
                 disableConsoleError);

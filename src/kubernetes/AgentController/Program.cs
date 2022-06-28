@@ -2,6 +2,7 @@
 
 using AgentController.AzDO;
 using AgentController.Kubes;
+using AgentController.Storage;
 using AgentController.Supports;
 using k8s;
 using k8s.Models;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 var cfg = ConfigUtils.Get();
 var instrumentation = new InstrumentationClient(cfg.AppInsightConnectionString, cfg.DisableConsoleLogs);
+var storage = await (new StorageManager(cfg, instrumentation)).InitializeAsync();
 var config = cfg.ClusterMode ?
     KubernetesClientConfiguration.InClusterConfig()
     : KubernetesClientConfiguration.BuildConfigFromConfigFile();
@@ -38,7 +40,12 @@ if (pool != null)
     while (true)
     {
         var jobs = await agentService.ListJobRequestsUIAsync(pool.Id);
-        var activeJob = (jobs.Count() - jobs.Count(j => j.IsCompleted));
+
+        // temp code
+        //bool seen = await storage.CheckJobAcknowledgementAsync(jobs.FirstOrDefault());
+        // temp code
+
+        var activeJob = (jobs.Count - jobs.Count(j => j.IsCompleted));
         var podCollection = await client.ListNamespacedPodAsync(cfg.TargetNamespace);
         // get only pending and running pods
         var totalNumberOfPods = podCollection.Items.Where(pod => pod.IsActive()).Count();
