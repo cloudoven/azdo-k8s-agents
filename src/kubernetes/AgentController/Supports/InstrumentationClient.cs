@@ -52,6 +52,13 @@ namespace AgentController.Supports
             if(_enableConsoleLogs)
             {
                 Console.WriteLine(message);
+                if (properties != null)
+                {
+                    foreach(var kv in properties)
+                    {
+                        Console.WriteLine($"\t #{kv.Key} = {kv.Value}");
+                    } 
+                }
             }
         }
     }

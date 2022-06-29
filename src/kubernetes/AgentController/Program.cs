@@ -38,10 +38,20 @@ if (pool != null)
     while (true)
     {
         var jobs = await agentService.ListJobRequestsAsync(pool.Id);
-        var unassignedJobRequests = (jobs.Count() - jobs.Count(j => j.ReservedAgent == null));
+        var unassignedJobRequests = (jobs.Count - jobs.Count(j => j.ReservedAgent == null));
+
         var podCollection = await client.ListNamespacedPodAsync(cfg.TargetNamespace);
         // get only pending and running pods
         var totalNumberOfPods = podCollection.Items.Where(pod => pod.IsActive()).Count();
+
+        instrumentation
+            .TrackEvent($"Job Queue retrieved for pool = {pool.Name} ({pool.Id})",
+            new Dictionary<string, string>
+            {
+                            { "TotalJobRequests", jobs.Count.ToString() },
+                            { "UnassignedJobRequests", unassignedJobRequests.ToString() },
+                            { "PodCount", totalNumberOfPods.ToString() }
+            });
 
         while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (unassignedJobRequests + cfg.StandBy))
         {
