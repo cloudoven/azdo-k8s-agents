@@ -56,57 +56,40 @@ if (pool != null)
             });
 
 
-        
-        {
-            foreach (var unassignedJob in unassignedJobRequests)
-            {
-                if (totalNumberOfPods < cfg.MaxAgentsCount && !familiarityCache.ContainsKey(unassignedJob.JobId))
-                {
-                    await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"{unassignedJob.JobId}" } });
-                    ++totalNumberOfPods;
 
-                    instrumentation
-                        .TrackEvent($"Responding to demand (active-request={unassignedJobRequests.Count}; current-pod-count={totalNumberOfPods}) Launching new Pod",
-                        new Dictionary<string, string>
-                        {
-                        { "TargetNamespace", cfg.TargetNamespace },
-                        { "JobID", unassignedJob.JobId },
-                        { "PodCount", totalNumberOfPods.ToString() }
-                        });
-                }
-            }
-        }
 
-        if ((totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < cfg.StandBy))
+        foreach (var unassignedJob in unassignedJobRequests)
         {
-            while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < cfg.StandBy)
+            if (totalNumberOfPods < cfg.MaxAgentsCount && !familiarityCache.ContainsKey(unassignedJob.JobId))
             {
+                await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"{unassignedJob.JobId}" } });
+                ++totalNumberOfPods;
+
                 instrumentation
-                    .TrackEvent($"Spinning placeholder pods",
+                    .TrackEvent($"Responding to demand (active-request={unassignedJobRequests.Count}; current-pod-count={totalNumberOfPods}) Launching new Pod",
                     new Dictionary<string, string>
                     {
                         { "TargetNamespace", cfg.TargetNamespace },
-                        { "ActiveJobRequest", unassignedJobRequests.Count.ToString() },
+                        { "JobID", unassignedJob.JobId },
                         { "PodCount", totalNumberOfPods.ToString() }
                     });
-                await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"PlaceHolder-{Guid.NewGuid()}" } });
-                ++totalNumberOfPods;
             }
         }
 
-        //while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (unassignedJobRequests + cfg.StandBy))
-        //{
-        //    instrumentation
-        //        .TrackEvent($"Responding to demand (active-request={unassignedJobRequests}; current-pod-count={totalNumberOfPods}) Launching new Pod",
-        //        new Dictionary<string, string> 
-        //        {
-        //            { "TargetNamespace", cfg.TargetNamespace },
-        //            { "ActiveJobRequest", unassignedJobRequests.ToString() },
-        //            { "PodCount", totalNumberOfPods.ToString() }
-        //        });
-        //    await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"1232" } });
-        //    ++totalNumberOfPods;
-        //}
+
+        while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < cfg.StandBy)
+        {
+            instrumentation
+                .TrackEvent($"Spinning placeholder pods",
+                new Dictionary<string, string>
+                {
+                        { "TargetNamespace", cfg.TargetNamespace },
+                        { "ActiveJobRequest", unassignedJobRequests.Count.ToString() },
+                        { "PodCount", totalNumberOfPods.ToString() }
+                });
+            await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"PlaceHolder-{Guid.NewGuid()}" } });
+            ++totalNumberOfPods;
+        }
 
         while (!danglingAgents.IsEmpty)
         {
@@ -136,7 +119,7 @@ if (pool != null)
                     {
                         instrumentation.TrackError(ex);
                     }
-                    
+
 
                     var agent = await agentService.GetAgentByNameAsync(pool.Id, pod.Metadata.Name);
                     if (agent != null)
@@ -165,7 +148,7 @@ if (pool != null)
                 else
                 {
                     eventSideEffectsMitigations.TryRemove(pod.Metadata.Name, out var discardedValue);
-                    
+
 
                     instrumentation
                         .TrackEvent($"Skipping side-effect of DELETE events Pod={pod.Metadata.Name}",
@@ -177,7 +160,7 @@ if (pool != null)
                 }
             }
         }
-        await Task.Delay(1000); 
+        await Task.Delay(1000);
     }
 
 }
