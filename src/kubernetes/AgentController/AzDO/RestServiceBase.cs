@@ -1,7 +1,10 @@
-﻿using System;
+﻿using AgentController.AzDO.Supports;
+using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AgentController.AzDO
 {
@@ -38,6 +41,18 @@ namespace AgentController.AzDO
             {
                 return new Uri(this.adoUrl).AbsolutePath.Replace("/", string.Empty);
             }            
+        }
+
+        protected JsonSerializerOptions Options
+        {
+            get
+            {
+                var option = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                option.Converters.Add(new UnixEpochDateConverter());
+                option.Converters.Add(new JsonStringEnumConverter());
+
+                return option;
+            }
         }
     }
 }

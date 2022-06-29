@@ -37,20 +37,20 @@ if (pool != null)
 
     while (true)
     {
-        var jobs = await agentService.ListJobRequestsUIAsync(pool.Id);
-        var activeJob = (jobs.Count() - jobs.Count(j => j.IsCompleted));
+        var jobs = await agentService.ListJobRequestsAsync(pool.Id);
+        var unassignedJobRequests = (jobs.Count() - jobs.Count(j => j.ReservedAgent == null));
         var podCollection = await client.ListNamespacedPodAsync(cfg.TargetNamespace);
         // get only pending and running pods
         var totalNumberOfPods = podCollection.Items.Where(pod => pod.IsActive()).Count();
 
-        while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (activeJob + cfg.StandBy))
+        while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (unassignedJobRequests + cfg.StandBy))
         {
             instrumentation
-                .TrackEvent($"Responding to demand (active-request={activeJob}; current-pod-count={totalNumberOfPods}) Launching new Pod",
+                .TrackEvent($"Responding to demand (active-request={unassignedJobRequests}; current-pod-count={totalNumberOfPods}) Launching new Pod",
                 new Dictionary<string, string> 
                 {
                     { "TargetNamespace", cfg.TargetNamespace },
-                    { "ActiveJobRequest", activeJob.ToString() },
+                    { "ActiveJobRequest", unassignedJobRequests.ToString() },
                     { "PodCount", totalNumberOfPods.ToString() }
                 });
             await k8sUtil.SpinAgentAsync(cfg);
