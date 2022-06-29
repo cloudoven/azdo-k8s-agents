@@ -1,5 +1,6 @@
 ﻿using k8s.Models;
 using System;
+using System.Collections.Generic;
 
 namespace AgentController.Kubes
 {
@@ -47,6 +48,20 @@ namespace AgentController.Kubes
         {
             return Pending.Equals(pod.Status.Phase, StringComparison.OrdinalIgnoreCase) ||
                 Running.Equals(pod.Status.Phase, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static Dictionary<string,string> ExtractLables(this IList<V1Pod> pods, string labelName)
+        {
+            var cache = new Dictionary<string, string>();
+            foreach(var pod in pods)
+            {
+                var value = pod.GetLabel(labelName);
+                if(!string.IsNullOrEmpty(value))
+                {
+                    cache.TryAdd(value, value);
+                }
+            }
+            return cache;
         }
     }
 }
