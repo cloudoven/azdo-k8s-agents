@@ -94,8 +94,57 @@ namespace AgentController.AzDO
     }
     #endregion
 
-    #region JOB requests
 
+    #region JOBS
+    
+    public class JobRequestData
+    {
+        [JsonPropertyName("ParallelismTag")]
+        public string ParallelismTag { get; set; }
+
+        [JsonPropertyName("IsScheduledKey")]
+        public string IsScheduledKey { get; set; }
+    }
+
+    public class JobDefinition
+    {
+
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+    }
+
+    public class MatchedAgent
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("version")]
+        public string Version { get; set; }
+
+        [JsonPropertyName("enabled")]
+        public bool Enabled { get; set; }
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; }
+
+        [JsonPropertyName("provisioningState")]
+        public string ProvisioningState { get; set; }
+    }
+
+    public class JobRequestOwner
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+    }
 
     public class ReservedAgent
     {
@@ -124,34 +173,15 @@ namespace AgentController.AzDO
         public string AccessPoint { get; set; }
     }
 
-    public class Definition
+    public class JobRequestCollection
     {
-        [JsonPropertyName("id")]
-        public int Id { get; set; }
+        [JsonPropertyName("count")]
+        public int Count { get; set; }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
+        [JsonPropertyName("value")]
+        public List<JobRequest> Jobs { get; set; }
     }
 
-
-
-    public class Data
-    {
-        [JsonPropertyName("ParallelismTag")]
-        public string ParallelismTag { get; set; }
-
-        [JsonPropertyName("IsScheduledKey")]
-        public string IsScheduledKey { get; set; }
-    }
-
-    public class AgentSpecification
-    {
-        [JsonPropertyName("VMImage")]
-        public string VMImage { get; set; }
-
-        [JsonPropertyName("vmImage")]
-        public string VmImage { get; set; }
-    }
 
     public class JobRequest
     {
@@ -161,18 +191,6 @@ namespace AgentController.AzDO
         [JsonPropertyName("queueTime")]
         public DateTime QueueTime { get; set; }
 
-        [JsonPropertyName("assignTime")]
-        public DateTime AssignTime { get; set; }
-
-        [JsonPropertyName("receiveTime")]
-        public DateTime ReceiveTime { get; set; }
-
-        [JsonPropertyName("finishTime")]
-        public DateTime FinishTime { get; set; }
-
-        [JsonPropertyName("result")]
-        public string Result { get; set; }
-
         [JsonPropertyName("serviceOwner")]
         public string ServiceOwner { get; set; }
 
@@ -193,169 +211,48 @@ namespace AgentController.AzDO
 
         [JsonPropertyName("demands")]
         public List<string> Demands { get; set; }
+
+        [JsonPropertyName("matchedAgents")]
+        public List<MatchedAgent> MatchedAgents { get; set; }
+
+        [JsonPropertyName("definition")]
+        public JobDefinition Definition { get; set; }
+
+        [JsonPropertyName("owner")]
+        public JobRequestOwner Owner { get; set; }
+
+        [JsonPropertyName("data")]
+        public JobRequestData Data { get; set; }
+
+        [JsonPropertyName("poolId")]
+        public int PoolId { get; set; }
+
+        [JsonPropertyName("orchestrationId")]
+        public string OrchestrationId { get; set; }
+
+        [JsonPropertyName("matchesAllAgentsInPool")]
+        public bool MatchesAllAgentsInPool { get; set; }
+
+        [JsonPropertyName("priority")]
+        public int Priority { get; set; }
+
+        [JsonPropertyName("assignTime")]
+        public DateTime? AssignTime { get; set; }
+
+        [JsonPropertyName("receiveTime")]
+        public DateTime? ReceiveTime { get; set; }
+
+        [JsonPropertyName("lockedUntil")]
+        public DateTime? LockedUntil { get; set; }
 
         [JsonPropertyName("reservedAgent")]
         public ReservedAgent ReservedAgent { get; set; }
 
-        [JsonPropertyName("definition")]
-        public Definition Definition { get; set; }
-
-
-        [JsonPropertyName("data")]
-        public Data Data { get; set; }
-
-        [JsonPropertyName("poolId")]
-        public int PoolId { get; set; }
-
-        [JsonPropertyName("agentSpecification")]
-        public AgentSpecification AgentSpecification { get; set; }
-
-        [JsonPropertyName("orchestrationId")]
-        public string OrchestrationId { get; set; }
-
-        [JsonPropertyName("matchesAllAgentsInPool")]
-        public bool MatchesAllAgentsInPool { get; set; }
-
-        [JsonPropertyName("priority")]
-        public int Priority { get; set; }
-
         public override string ToString()
         {
-            return $"{Result}=> Request: {RequestId}; Queued: {QueueTime}; Assgined: {AssignTime}; Pipeline: {Definition.Name}; Agent: {this.AgentSpecification.VMImage}";
+            return $"ID: {JobId}; QT:{QueueTime}; AT:{this.AssignTime}; RT:{this.ReceiveTime};";
         }
     }
-
-    public class JobRequestCollection
-    {
-        [JsonPropertyName("count")]
-        public int Count { get; set; }
-
-        [JsonPropertyName("value")]
-        public List<JobRequest> Value { get; set; }
-    }
-
-
-    #endregion
-
-    #region Undocumented Jobs
-    // Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse); 
- 
-    public class MsVssBuildWebAgentJobsData
-    {
-
-        [JsonPropertyName("ms.vss-build-web.agent-jobs-data-provider")]
-        public MsVssBuildWebAgentJobsDataProvider MsVssBuildWebAgentJobsDataProvider { get; set; }
-    }
-
- 
-
-    public class Job
-    {
-        [JsonPropertyName("requestId")]
-        public int RequestId { get; set; }
-
-        [JsonPropertyName("queueTime")]
-        public DateTimeOffset QueueTime { get; set; }
-
-        [JsonPropertyName("assignTime")]
-        public DateTimeOffset AssignTime { get; set; }
-
-        [JsonPropertyName("receiveTime")]
-        public DateTimeOffset ReceiveTime { get; set; }
-
-        [JsonPropertyName("finishTime")]
-        public DateTimeOffset FinishTime { get; set; }
-
-        [JsonPropertyName("result")]
-        public int Result { get; set; }
-
-        [JsonPropertyName("serviceOwner")]
-        public string ServiceOwner { get; set; }
-
-        [JsonPropertyName("hostId")]
-        public string HostId { get; set; }
-
-        [JsonPropertyName("scopeId")]
-        public string ScopeId { get; set; }
-
-        [JsonPropertyName("planType")]
-        public string PlanType { get; set; }
-
-        [JsonPropertyName("planId")]
-        public string PlanId { get; set; }
-
-        [JsonPropertyName("jobId")]
-        public string JobId { get; set; }
-
-        [JsonPropertyName("demands")]
-        public List<string> Demands { get; set; }
-
-        [JsonPropertyName("definition")]
-        public Definition Definition { get; set; }
-
-
-        [JsonPropertyName("data")]
-        public Data Data { get; set; }
-
-        [JsonPropertyName("poolId")]
-        public int PoolId { get; set; }
-
-        [JsonPropertyName("orchestrationId")]
-        public string OrchestrationId { get; set; }
-
-        [JsonPropertyName("matchesAllAgentsInPool")]
-        public bool MatchesAllAgentsInPool { get; set; }
-
-        [JsonPropertyName("priority")]
-        public int Priority { get; set; }
-
-        public bool IsCompleted
-        {
-            get 
-            {                
-                return this.FinishTime.UtcDateTime > new DateTime(2000, 1, 1).ToUniversalTime();
-            }
-        }
-
-        public override string ToString()
-        {
-            return $"Completed:{this.IsCompleted}; QT:{QueueTime}; AT:{this.AssignTime}; RT:{this.ReceiveTime};FT:{this.FinishTime}";
-        }
-    }
-
-    public enum JobStatus
-    {
-        Succeeded,
-        Queueed,
-        Failed,
-        Cancelled
-    }
-
-    public class MsVssBuildWebAgentJobsDataProvider
-    {
-        [JsonPropertyName("jobs")]
-        public List<Job> Jobs { get; set; }
-    }
-
-
-    public class DataProviders
-    {
-        [JsonPropertyName("data")]
-        public MsVssBuildWebAgentJobsData Data { get; set; }
-    }
-
-    public class Fps
-    {
-        [JsonPropertyName("dataProviders")]
-        public DataProviders DataProviders { get; set; }
-    }
-
-    public class UndocumentedJobs
-    {
-        [JsonPropertyName("fps")]
-        public Fps Fps { get; set; }
-    }
-
 
     #endregion
 }

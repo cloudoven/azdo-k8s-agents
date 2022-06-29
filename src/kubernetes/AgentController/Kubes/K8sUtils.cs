@@ -29,12 +29,17 @@ namespace AgentController.Kubes
             _timer = null;
         }
 
-        public async Task<bool> SpinAgentAsync(ConfigUtils.Config cfg)
+        public async Task<bool> SpinAgentAsync(ConfigUtils.Config cfg, Dictionary<string, string> labels)
         {
-            return await SpinAgentAsync(cfg.TargetNamespace, cfg.OrgUri, cfg.Pat, cfg.PoolName);
+            return await SpinAgentAsync(cfg.TargetNamespace, cfg.OrgUri, cfg.Pat, cfg.PoolName, labels);
         }
 
-        private async Task<bool> SpinAgentAsync(string ns, string azdoUri, string pat, string poolName)
+        private async Task<bool> SpinAgentAsync(
+            string ns, 
+            string azdoUri, 
+            string pat, 
+            string poolName,
+            Dictionary<string, string> labels)
         {
             try
             {
@@ -44,6 +49,15 @@ namespace AgentController.Kubes
 
                 podSpec.Metadata.NamespaceProperty = ns;
                 podSpec.Metadata.Name = name;
+
+                if(labels != null)
+                {   
+                    foreach (var kv in labels)
+                    {
+                        podSpec.SetLabel(kv.Key, kv.Value);
+                    }
+                }
+                
                 var containerSpec = podSpec.Spec.Containers.FirstOrDefault();
                 containerSpec.Name = name;
                 containerSpec.Image = agentSpec.GetImageName();
@@ -115,13 +129,13 @@ namespace AgentController.Kubes
                     {
                         { "PodNamespace", targetNamespace },
                         { "Watch interval", _intervalInSeconds.ToString() }
-                    });
+                    }, false);
                     if (_podWatcher != null)
                     {   
                         _instrumentationClient.TrackEvent("Disposing last used watcher instance.", new Dictionary<string, string>
                         {
                             { "PodNamespace", targetNamespace }
-                        });
+                        }, false);
                         _podWatcher.Dispose();
                     }
                     var podlistResp = _client.ListNamespacedPodWithHttpMessagesAsync(targetNamespace, watch: true);

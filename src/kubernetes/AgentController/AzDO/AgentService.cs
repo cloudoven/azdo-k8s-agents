@@ -16,16 +16,11 @@ namespace AgentController.AzDO
             
         }
 
-        public async Task<List<Job>> ListJobRequestsUIAsync(int poolId)
+        public async Task<List<JobRequest>> ListJobRequestsAsync(int poolId)
         {
-            var option = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            option.Converters.Add(new UnixEpochDateConverter());
-            option.Converters.Add(new JsonStringEnumConverter());
-
-            var path = $"{OrgName}/_settings/agentpools?poolId={poolId}&__rt=fps&__ver=2";
-            var response = await Http.GetRestAsync<UndocumentedJobs>(path, option);
-            var jobs = response.Fps.DataProviders.Data.MsVssBuildWebAgentJobsDataProvider.Jobs;
-            return jobs;
+            var path = $"{OrgName}/_apis/distributedtask/pools/{poolId}/jobrequests";
+            var jobRequestCollection = await Http.GetRestAsync<JobRequestCollection>(path, Options);
+            return jobRequestCollection.Jobs;
         }
 
         public async Task<bool> DeleteAgentAsync(int poolId, int agentId)

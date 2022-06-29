@@ -5,6 +5,7 @@ using AgentController.Kubes;
 using AgentController.Supports;
 using k8s;
 using k8s.Models;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,25 +38,75 @@ if (pool != null)
 
     while (true)
     {
-        var jobs = await agentService.ListJobRequestsUIAsync(pool.Id);
-        var activeJob = (jobs.Count() - jobs.Count(j => j.IsCompleted));
+        var jobs = await agentService.ListJobRequestsAsync(pool.Id);
+        var unassignedJobRequests = jobs.Where(j => j.ReservedAgent == null).ToList();
+
         var podCollection = await client.ListNamespacedPodAsync(cfg.TargetNamespace);
         // get only pending and running pods
         var totalNumberOfPods = podCollection.Items.Where(pod => pod.IsActive()).Count();
+        var familiarityCache = podCollection.Items.ExtractLables("Octolamp.DemandId");
 
-        while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (activeJob + cfg.StandBy))
+        instrumentation
+            .TrackEvent($"Job Queue retrieved for pool = {pool.Name} ({pool.Id})",
+            new Dictionary<string, string>
+            {
+                            { "TotalJobRequests", jobs.Count.ToString() },
+                            { "UnassignedJobRequests", unassignedJobRequests.Count.ToString() },
+                            { "PodCount", totalNumberOfPods.ToString() }
+            });
+
+
+        
         {
-            instrumentation
-                .TrackEvent($"Responding to demand (active-request={activeJob}; current-pod-count={totalNumberOfPods}) Launching new Pod",
-                new Dictionary<string, string> 
+            foreach (var unassignedJob in unassignedJobRequests)
+            {
+                if (totalNumberOfPods < cfg.MaxAgentsCount && !familiarityCache.ContainsKey(unassignedJob.JobId))
                 {
-                    { "TargetNamespace", cfg.TargetNamespace },
-                    { "ActiveJobRequest", activeJob.ToString() },
-                    { "PodCount", totalNumberOfPods.ToString() }
-                });
-            await k8sUtil.SpinAgentAsync(cfg);
-            ++totalNumberOfPods;
+                    await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"{unassignedJob.JobId}" } });
+                    ++totalNumberOfPods;
+
+                    instrumentation
+                        .TrackEvent($"Responding to demand (active-request={unassignedJobRequests.Count}; current-pod-count={totalNumberOfPods}) Launching new Pod",
+                        new Dictionary<string, string>
+                        {
+                        { "TargetNamespace", cfg.TargetNamespace },
+                        { "JobID", unassignedJob.JobId },
+                        { "PodCount", totalNumberOfPods.ToString() }
+                        });
+                }
+            }
         }
+
+        if ((totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < cfg.StandBy))
+        {
+            while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < cfg.StandBy)
+            {
+                instrumentation
+                    .TrackEvent($"Spinning placeholder pods",
+                    new Dictionary<string, string>
+                    {
+                        { "TargetNamespace", cfg.TargetNamespace },
+                        { "ActiveJobRequest", unassignedJobRequests.Count.ToString() },
+                        { "PodCount", totalNumberOfPods.ToString() }
+                    });
+                await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"PlaceHolder-{Guid.NewGuid()}" } });
+                ++totalNumberOfPods;
+            }
+        }
+
+        //while (totalNumberOfPods < cfg.MaxAgentsCount && totalNumberOfPods < (unassignedJobRequests + cfg.StandBy))
+        //{
+        //    instrumentation
+        //        .TrackEvent($"Responding to demand (active-request={unassignedJobRequests}; current-pod-count={totalNumberOfPods}) Launching new Pod",
+        //        new Dictionary<string, string> 
+        //        {
+        //            { "TargetNamespace", cfg.TargetNamespace },
+        //            { "ActiveJobRequest", unassignedJobRequests.ToString() },
+        //            { "PodCount", totalNumberOfPods.ToString() }
+        //        });
+        //    await k8sUtil.SpinAgentAsync(cfg, new Dictionary<string, string> { { "Octolamp.DemandId", $"1232" } });
+        //    ++totalNumberOfPods;
+        //}
 
         while (!danglingAgents.IsEmpty)
         {
@@ -69,15 +120,23 @@ if (pool != null)
                         {
                             { "PodNamespace", pod.Metadata.NamespaceProperty },
                             { "PodName", pod.Metadata.Name }
-                        });                    
-                    await client.DeleteNamespacedPodAsync(pod.Metadata.Name, pod.Metadata.NamespaceProperty);
-                    instrumentation
-                        .TrackEvent($"Deleted Pod={pod.Metadata.Name}",
-                        new Dictionary<string, string>
-                        {
+                        }, false);
+                    try
+                    {
+                        await client.DeleteNamespacedPodAsync(pod.Metadata.Name, pod.Metadata.NamespaceProperty);
+                        instrumentation
+                            .TrackEvent($"Deleted Pod={pod.Metadata.Name}",
+                            new Dictionary<string, string>
+                            {
                             { "PodNamespace", pod.Metadata.NamespaceProperty },
                             { "PodName", pod.Metadata.Name }
-                        });
+                            }, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        instrumentation.TrackError(ex);
+                    }
+                    
 
                     var agent = await agentService.GetAgentByNameAsync(pool.Id, pod.Metadata.Name);
                     if (agent != null)
@@ -90,7 +149,7 @@ if (pool != null)
                                 { "AgentID", agent.Id.ToString() },
                                 { "PoolID", pool.Id.ToString() },
                                 { "PoolName", pool.Name.ToString() }
-                            });
+                            }, false);
                         await agentService.DeleteAgentAsync(pool.Id, agent.Id);
                         instrumentation
                             .TrackEvent($"Deleted Agent={pod.Metadata.Name}(ID={agent.Id}) (POOL={pool.Id}).",
@@ -100,7 +159,7 @@ if (pool != null)
                                 { "AgentID", agent.Id.ToString() },
                                 { "PoolID", pool.Id.ToString() },
                                 { "PoolName", pool.Name.ToString() }
-                            });
+                            }, false);
                     }
                 }
                 else
@@ -114,11 +173,11 @@ if (pool != null)
                         {
                                 { "PodName", pod.Metadata.Name },
                                 { "PodNamespace", pod.Metadata.NamespaceProperty }
-                        });
+                        }, false);
                 }
             }
         }
-        await Task.Delay(1000);
+        await Task.Delay(1000); 
     }
 
 }

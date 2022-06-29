@@ -42,16 +42,23 @@ namespace AgentController.Supports
             }
         }
 
-        public void TrackEvent(string message, IDictionary<string, string> properties)
+        public void TrackEvent(string message, IDictionary<string, string> properties, bool enableConsole = true)
         {
             if (_instrumentationEnabled) 
             {
                 this._client.TrackEvent(message, properties);
             }
             
-            if(_enableConsoleLogs)
+            if(_enableConsoleLogs && enableConsole)
             {
                 Console.WriteLine(message);
+                if (properties != null)
+                {
+                    foreach(var kv in properties)
+                    {
+                        Console.WriteLine($"\t #{kv.Key} = {kv.Value}");
+                    } 
+                }
             }
         }
     }
